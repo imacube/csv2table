@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/csv"
+	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -9,19 +11,26 @@ import (
 )
 
 func main() {
-	// Check for the CSV file path argument.
-	if len(os.Args) < 2 {
-		log.Fatal("Usage: csv2table <csv file>")
+	// Parse arguments
+	setRowLine := flag.Bool("rowline", true, "Draws a line between each row")
+	header := flag.Bool("header", true, "Use the first row as the header")
+	flag.Parse()
+
+	// Check for the CSV file path argument
+	if len(flag.Args()) == 0 {
+		fmt.Println("Usage: csv2table [arguments] [csv file]")
+		flag.PrintDefaults()
+		os.Exit(1)
 	}
 
-	// Open the CSV file.
-	file, err := os.Open(os.Args[1])
+	// Open the CSV file
+	file, err := os.Open(flag.Args()[0])
 	if err != nil {
 		log.Fatalf("Error opening CSV file: %v", err)
 	}
 	defer file.Close()
 
-	// Read the CSV file.
+	// Read the CSV file
 	csvFile := csv.NewReader(file)
 	data, err := csvFile.ReadAll()
 	if err != nil {
@@ -33,20 +42,24 @@ func main() {
 
 	table := tablewriter.NewWriter(os.Stdout)
 
-	// Use the first row of the CSV as the header.
-	table.SetHeader(data[0])
+	// Should the first row be used as the table header?
+	firstRow := 0
+	if *header {
+		table.SetHeader(data[0])
+		firstRow = 1
+	}
 
 	// Keep all columns to a single line
 	table.SetAutoWrapText(false)
 
 	// Add a line delineating each row
-	table.SetRowLine(true)
+	table.SetRowLine(*setRowLine)
 
-	// Append the rest of the CSV rows to the table.
-	for _, row := range data[1:] {
+	// Append the rest of the CSV rows to the table
+	for _, row := range data[firstRow:] {
 		table.Append(row)
 	}
 
-	// Render the table to the console.
+	// Render the table to the console
 	table.Render()
 }
